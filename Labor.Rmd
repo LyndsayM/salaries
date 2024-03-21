@@ -12,6 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(readr)
+library(kableExtra)
+library(ggplot2)
+library(reactable)
 ```
 
 ```{r}
@@ -61,11 +64,74 @@ group_by(name, naics, naics_title, occ_title) %>%
 
 
 ```{r}
-salary_joined_adj %>%
+#Table of epi salaries by NAICS group 
+epi_job_groups_table <- salary_joined_adj %>%
   group_by(naics_title) %>%
   filter(occ_title == "Epidemiologists") %>% 
   summarize(mean_adj_income = mean(a_mean_adj)) %>% 
   arrange(desc(mean_adj_income))
-  print()
+  
+  
+kable(epi_job_groups_table,
+      booktabs = T,
+      col.names = c("Group title", "Mean adjusted annual income"),
+      caption = "Mean adjusted income by group for Epidemiologists (adjusted by cost of living)") %>%
+  kable_styling(full_width = F)
 ```
+
+```{r}
+#table of jobs by group title
+
+epi_jobs_num_table <- salary_joined %>%
+  filter(occ_title == "Epidemiologists") %>%
+  group_by(naics_title) %>% 
+  summarize(num_jobs = sum(tot_emp)) %>% 
+  arrange(desc(num_jobs))
+
+epi_jobs_num_table <- data.frame(epi_jobs_num_table) 
+epi_jobs_num_table$naics_title <- as.factor(epi_jobs_num_table$naics_title)
+
+kable(epi_jobs_num_table,
+      booktabs = T,
+      col.names = c("Group title", "Number of jobs"),
+      caption = "Number of epidemiologist jobs by NAICS group") %>%
+  kable_styling(full_width = F)
+```
+
+```{r}
+#barchart 
+epi_jobs_num_table %>% 
+  
+ggplot(aes(x = reorder(naics_title, num_jobs), y = num_jobs, fill=naics_title)) + 
+  geom_col() +
+  scale_x_discrete(label=function(x) stringr::str_trunc(x, 20))+
+  labs(x = "", y = "", title = "Total number of jobs in Epidemiology (2022) by NAICS group")+
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1, vjust = 0.9),
+        legend.position="none")
+
+```
+
+```{r}
+#what are number of jobs available by state?
+#in what state do you have the most jobs and also the most pay for epidemiologists?
+#for example, New Jersey is fairly high on the list in terms of income and also high # of jobs (11 out of 54 - includes Puerto Rico, Guam, US Virgin Islands, and Washington DC)
+#assign each state a # between 1 and 54 for their income level & another assign # for their job availability
+jobs_by_state <- salary_joined %>% 
+  filter(occ_title == "Epidemiologists") %>%
+  group_by(name) %>% 
+  summarize(tot_jobs = sum(tot_emp),
+            avg_pay = round(mean(a_mean),2)) %>% 
+  mutate(rank_most_jobs = percent_rank(tot_jobs),
+         most_jobs = ifelse(rank_most_jobs >= 0.75, 1, 0),
+         rank_most_pay = percent_rank(avg_pay),
+         most_pay = ifelse(rank_most_pay >= 0.75, 1,0),
+         best_both = ifelse(most_jobs == 1 & most_pay == 1, 1, 0)
+         ) %>% 
+  arrange(desc(best_both), desc(most_pay))
+reactable(jobs_by_state)
+```
+
+
+
+
 
