@@ -30,6 +30,7 @@ salary_clean <- salary %>%
   rename_with( ~ tolower(gsub(" ", "", .x, fixed = TRUE))) %>%
   select(area, area_title, naics, naics_title, occ_title, tot_emp, a_mean) %>%
   rename(name = area_title)
+ 
 
 salary_clean$a_mean <- as.numeric(salary_clean$a_mean)
 salary_clean$tot_emp <- as.integer(salary_clean$tot_emp)
@@ -43,10 +44,16 @@ coli_clean <- coli %>%
   rename_with( ~ tolower(gsub(" ", "", .x, fixed = TRUE))) %>%
   select(state, conversion) %>%
   mutate(conversion_adj = conversion/100)
+
+#remove non-US states
+coli_clean <- coli_clean[!(coli_clean$state == "Remote" |
+                             coli_clean$state == "British Columbia"|
+                             coli_clean$state == "Ontario"),]
   
 ```
 
 ```{r}
+#join the 3 datasets 
 salary_joined <- salary_clean %>%
   left_join(states, by = "name")%>%
   left_join(coli_clean, by = "state") 
@@ -54,23 +61,30 @@ salary_joined <- salary_clean %>%
 
 
 ```{r}
+#add an adjusted salary, weighted by the cost of living index
+
 salary_joined_adj <- salary_joined %>% 
-group_by(name, naics, naics_title, occ_title) %>%
-  summarize(
-    total_a_mean = sum(a_mean), 
-    a_mean_adj = weighted.mean(a_mean, conversion_adj)) %>%
-    arrange(name, naics, naics_title, occ_title)
+  group_by(name, naics, naics_title, occ_title) %>%
+  mutate(adjusted_sal = (a_mean * (1+(1-(conversion/100) )))) %>%
+  arrange(name, naics, naics_title, occ_title)
+  
+                         
+```
+
+```{r}
+#just epidemiologists
+
+salary_epis <- salary_joined_adj %>% 
+  filter(occ_title == "Epidemiologists")
 ```
 
 
 ```{r}
-#Table of epi salaries by NAICS group 
-epi_job_groups_table <- salary_joined_adj %>%
+#Table of epi salaries by NAICS group with adjusted salaries
+epi_job_groups_table <- salary_epis %>%
   group_by(naics_title) %>%
-  filter(occ_title == "Epidemiologists") %>% 
-  summarize(mean_adj_income = mean(a_mean_adj)) %>% 
+  summarize(mean_adj_income = mean(adjusted_sal)) %>% 
   arrange(desc(mean_adj_income))
-  
   
 kable(epi_job_groups_table,
       booktabs = T,
@@ -82,8 +96,7 @@ kable(epi_job_groups_table,
 ```{r}
 #table of jobs by group title
 
-epi_jobs_num_table <- salary_joined %>%
-  filter(occ_title == "Epidemiologists") %>%
+epi_jobs_num_table <- salary_epis %>%
   group_by(naics_title) %>% 
   summarize(num_jobs = sum(tot_emp)) %>% 
   arrange(desc(num_jobs))
@@ -116,8 +129,7 @@ ggplot(aes(x = reorder(naics_title, num_jobs), y = num_jobs, fill=naics_title)) 
 #in what state do you have the most jobs and also the most pay for epidemiologists?
 #for example, New Jersey is fairly high on the list in terms of income and also high # of jobs (11 out of 54 - includes Puerto Rico, Guam, US Virgin Islands, and Washington DC)
 #assign each state a # between 1 and 54 for their income level & another assign # for their job availability
-jobs_by_state <- salary_joined %>% 
-  filter(occ_title == "Epidemiologists") %>%
+jobs_by_state <- salary_epis %>% 
   group_by(name) %>% 
   summarize(tot_jobs = sum(tot_emp),
             avg_pay = round(mean(a_mean),2)) %>% 
