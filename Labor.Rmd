@@ -1,43 +1,11 @@
 ---
-title: "Exploratory Analysis of Epidemiologist Salaries, May 2022"
+title: "Analysis of Epidemiologist Wages, May 2022"
 author: "Lyndsay Miles"
 date: "`r Sys.Date()`"
 output: html_document
 ---
 
-## Introduction
-
-I am just a few weeks from completing a Masters in Public Health (Epidemiology and Biostatistics concentration) and my thoughts are squarely on the job market as I comb through posted opportunities and talk with peers and mentors. I thought another good place to get my bearings was to take a look at the most recent labor statistics and get an idea of which states employ the most epidemiologists and how does this compare with the pay rate. To compare apples to apples as much as possible, I adjusted salaries by current (2023) cost of living estimates.
-
-## Key Takeaways
-
-The majority of epidemiologists employed in May 2022 (10,000+) worked in federal, state, and local government and their average salary fell somewhere in the middle of the pack in terms of NAICS industry groups. Those with the largest incomes work in, e.g., Research and development in the physical, engineering, and life sciences (370), and professional, scientific, and technical services (980), but there are far fewer people employed in this categories compared to government roles.
-
-Five states score highly in terms of employing high numbers of epidemiologists and paying the highest average salaries: California, Maryland, Massachusetts, Minnesota, and Washington. New Mexico and Rhode Island employed the fewest epidemiologists. Annual adjusted mean wages for epidemiologists were lowest in Mississippi and Louisiana.
-
-## Limitations
-
-The salary data used is from May 2022, and more recent data would be beneficial. This snapshot captures a period of time in which local, state, and federal governments were hiring and retaining more epidemiologists than usual because of the COVID-19 pandemic response. For brevity, I chose to focus on mean adjusted annual income, but looking at salary ranges would be meaningful as well. There are also many other job titles that epidemiologists work under, including research analyst, data analyst, and research manager. This analysis only captures salaries and number employed with the title "epidemiologists" so this gives us an incomplete picture.
-
-## The Data
-
-I used the most recent data tables provided by the U.S. Bureau of Labor Statistics (Research estimates by state and industry/all sectors). This data is derived from sample surveys, which are subject to sampling and non-sampling error. To take into consideration variations in cost of living from state to state, I adjusted salary values using the Missouri Economic Research and Information Center (MERIC) cost of living estimates for 2023. According to their website, MERIC arrives an the cost of living index by averaging the indices of cities and metropolitan areas in a state.
-
-To conduct this analysis, I cleaned and joined these two data sets and filtered to only include observations where the occupational title is "Epidemiologists". I used the following variables:
-
--   State name
-
--   North American Industry Classification System (NAICS) title for the given industry
-
--   Standard Occupational Classification title or OEWS specific title for the occupation
-
--   Mean annual wage
-
--   Estimated total employed rounded to the nearest 10 (excludes self-employed).
-
-I then calculated the mean adjusted annual wage by creating a new variable using this formula:
-
-$adjusted salary = (mean Annual Salary(1 + 1-cost Of Living Index/100))$
+I am just a few weeks from completing an MPH (Epidemiology and Biostatistics concentration) and my thoughts are on the job market as I comb through opportunities and talk with peers and mentors. To better understand the labor market, it was helpful to look at recent labor statistics. To compare apples to apples, I adjusted salaries by 2023 cost of living estimates.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -110,9 +78,28 @@ salary_epis <- salary_joined_adj %>%
   filter(occ_title == "Epidemiologists")
 ```
 
-## Visualizations
+```{r, echo=FALSE}
+#barchart 
+#table of jobs by group title
+#included this information in the table above
+epi_jobs_num_table <- salary_epis %>%
+  group_by(naics_title) %>% 
+  summarize(num_jobs = sum(tot_emp)) %>% 
+  arrange(desc(num_jobs))
+epi_jobs_num_table %>% 
+  
+ggplot(aes(x = reorder(naics_title, num_jobs), y = num_jobs, fill=naics_title)) + 
+  geom_col() +
+  scale_x_discrete(label=function(x) stringr::str_trunc(x, 20))+
+  labs(x = "", y = "", title = "Figure 1: Total number of persons employed as epidemiologists", subtitle = "May 2022, by NAICS group")+
+  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1, vjust = 0.9),
+        legend.position="none")
 
-I started by grouping epidemiologists by NAICS group title and reporting the average mean adjusted annual wage and total employed by group (Table 1).
+```
+
+It was helpful to start by looking at count of epidemiologists by group in a bar chart. This hits home what a huge employer federal, state, and local governments are for those working in this field (Figure 1).
+
+Then I grouped epidemiologists by NAICS group title and reported the average mean adjusted annual wage and total employed by group (Table 1).
 
 ```{r, echo=FALSE}
 #Table of epi salaries by NAICS group with adjusted salaries
@@ -130,12 +117,7 @@ kable(epi_job_groups_table,
 ```
 
 ```{r, include=FALSE, echo=FALSE}
-#table of jobs by group title
-#included this information in the table above
-epi_jobs_num_table <- salary_epis %>%
-  group_by(naics_title) %>% 
-  summarize(num_jobs = sum(tot_emp)) %>% 
-  arrange(desc(num_jobs))
+
 
 epi_jobs_num_table <- data.frame(epi_jobs_num_table) 
 epi_jobs_num_table$naics_title <- as.factor(epi_jobs_num_table$naics_title)
@@ -147,22 +129,7 @@ kable(epi_jobs_num_table,
   kable_styling(full_width = F)
 ```
 
-It was also helpful to look at the count of epidemiologists by group in a bar chart. This really hits home what a huge employer federal, state, and local governments are for those working in this field (Figure 1).
-
-```{r, echo=FALSE}
-#barchart 
-epi_jobs_num_table %>% 
-  
-ggplot(aes(x = reorder(naics_title, num_jobs), y = num_jobs, fill=naics_title)) + 
-  geom_col() +
-  scale_x_discrete(label=function(x) stringr::str_trunc(x, 20))+
-  labs(x = "", y = "", title = "Figure 1: Total number of persons employed as epidemiologists", subtitle = "May 2022, by NAICS group")+
-  theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1, vjust = 0.9),
-        legend.position="none")
-
-```
-
-Now I knew in which industry groups epidemiologists were employed and what the salary range looked like, but where in the United States would an epidemiologist most likely to be employed and and also get a higher salary? I grouped the data by state and used percent_rank() to determine which states fell in the top 25% for number employed and which landed in the top 25% for highest average adjusted annual wage. States who scored highly in both of these rankings are highlighted in green in the interactive table below (Table 2). Note that I did not take into consideration a state's population size, which should be considered when looking at these rankings. For example, it makes sense that a large state like California employs a large number of epidemiologists, and a less populated state like Alaska employs fewer (70).  
+Now I knew in which industry groups epidemiologists were employed and what the salary range looked like, but where in the United States would an epidemiologist most likely to be employed and and also get a higher salary? I grouped the data by state and used percent_rank() to determine which states fell in the top 25% for number employed and which landed in the top 25% for highest average adjusted annual wage. States who scored highly in both of these rankings are highlighted in green in the interactive table below (Table 2). Note that I did not take into consideration a state's population size, which should be considered when looking at these rankings. For example, it makes sense that a large state like California employs a large number of epidemiologists, and a less populated state like Alaska employs fewer (70).
 
 ```{r, echo=FALSE, include=FALSE}
 #what are number of jobs available by state?
@@ -208,8 +175,8 @@ datatable(
               backgroundColor = styleEqual(c(0,1), c("white", "#ADDFB3")))
 ```
 
+Finally, I created a scatter plot to see where each state lands in terms of correlation between the number employed as epidemiologists and the average adjusted annual wage. I see a couple of outliers (e.g., average wage in New Jersey is high, but the number employed (440) is fairly low) but for the most part, states tend to have fewer than 500 epidemiologists and pay in the \$60K-\$90K range. However, there is a weak positive association (Pearson correlation coefficient = 0.38).
 
-Finally, I created a scatter plot to see where each state lands in terms of correlation between the number employed as epidemiologists and the average adjusted annual wage. I see a couple of outliers (e.g., average wage in New Jersey is high, but the number employed (440) is fairly low) but for the most part, states tend to have fewer than 500 epidemiologists and pay in the $60K-$90K range. However, there is a weak positive association (Pearson correlation coefficient = 0.38).
 ```{r, echo=FALSE}
 plot1 <- jobs_by_state %>% 
   ggplot(aes(x=tot_jobs, y=avg_pay, label=name)) +
@@ -239,14 +206,39 @@ ggplotly(plot1)
 salary_epis_no_gov <- salary_joined_adj %>% 
   filter(occ_title == "Epidemiologists" & naics != "99" & naics != "999000")
 ```
-## Conclusions
 
-This analysis is limited to just one occupational title, which means a lot of folks working in the space (research and data analysts, coordinators, managers, etc.) are not included. I decided to focus only on epidemiologists as it is specific to public health, while, e.g., data and research analysts work across many other fields. There is a wide range in terms of average annual wage, from about $43K in educational services to $115K R&D in the Physical, Engineering and Life Sciences. Somewhere in the middle of this range falls the majority of epidemiologists working for state, local, and federal government, making annual wages in the $60K-$70K's. There is also a wide range in wages and employment regionally. Of note, there are some states that employ a lot of epidemiologists (e.g., California and Washington) also pay the highest salaries. 
+### Data
 
-## References
+I used the most recent data tables provided by the U.S. Bureau of Labor Statistics (Research estimates by state and industry/all sectors). This data is derived from sample surveys, which are subject to sampling and non-sampling error. To take into consideration variations in cost of living from state to state, I adjusted salary values using the Missouri Economic Research and Information Center (MERIC) cost of living estimates for 2023. According to their website, MERIC arrives an the cost of living index by averaging the indices of cities and metropolitan areas in a state.
 
-U.S. Bureau of Labor Statistics. (2023, April 27). Tables created by BLS. U.S. Bureau of Labor Statistics. Retrieved March 21, 2024 from https://www.bls.gov/oes/tables.htm.
+To conduct this analysis, I cleaned and joined these two data sets and filtered to only include observations where the occupational title is "Epidemiologists". I used the following variables:
 
-Karol Łukaszczyk. (June 2023). Cost of living in State in USA - MERIC (adapted from Missouri Economic Research and Information Center's Cost of Living Data Series), Version 1. Retrieved March 21, 2024 from https://www.kaggle.com/datasets/lukkardata/cost-of-living-missouri-economic-research.
+-   State name
 
-Link to the code for this analysis: https://github.com/LyndsayM/salaries
+-   North American Industry Classification System (NAICS) title for the given industry
+
+-   Standard Occupational Classification title or OEWS specific title for the occupation
+
+-   Mean annual wage
+
+-   Estimated total employed rounded to the nearest 10 (excludes self-employed).
+
+I then calculated the mean adjusted annual wage by creating a new variable using this formula:
+
+> $adjusted salary = (mean Annual Salary(1 + 1-cost Of Living Index/100))$
+
+### Conclusions
+
+The majority of epidemiologists employed in May 2022 (10,000+) worked in federal, state, and local government and their average salary fell somewhere in the middle of the pack in terms of NAICS industry groups. Those with the largest incomes work in, e.g., Research and development in the physical, engineering, and life sciences (370), and professional, scientific, and technical services (980), but there are fewer people employed in this categories compared to government roles.
+
+Five states score highly in terms of employing high numbers of epidemiologists and paying the highest average salaries: California, Maryland, Massachusetts, Minnesota, and Washington. New Mexico and Rhode Island employed the fewest epidemiologists. Annual adjusted mean wages for epidemiologists were lowest in Mississippi and Louisiana. \## Limitations
+
+The salary data used is from May 2022, and more recent data would be beneficial. This snapshot captures a period of time in which local, state, and federal governments were hiring and retaining more epidemiologists than usual because of the COVID-19 pandemic response. For brevity, I chose to focus on mean adjusted annual income, but looking at salary ranges would be meaningful as well. There are also many other job titles that epidemiologists work under, including research analyst, data analyst, and research manager. This analysis only captures salaries and number employed with the title "epidemiologists" so this gives us an incomplete picture.
+
+### References
+
+U.S. Bureau of Labor Statistics. (2023, April 27). Tables created by BLS. U.S. Bureau of Labor Statistics. Retrieved March 21, 2024 from <https://www.bls.gov/oes/tables.htm>.
+
+Karol Łukaszczyk. (June 2023). Cost of living in State in USA - MERIC (adapted from Missouri Economic Research and Information Center's Cost of Living Data Series), Version 1. Retrieved March 21, 2024 from <https://www.kaggle.com/datasets/lukkardata/cost-of-living-missouri-economic-research>.
+
+Link to the code for this analysis: <https://github.com/LyndsayM/salaries>
