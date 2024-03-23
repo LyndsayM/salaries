@@ -38,7 +38,7 @@ salary_clean <- salary %>%
   rename(name = area_title)
 ```
 
-```{r}
+```{r, echo=FALSE, include=FALSE}
 
 salary_clean$a_mean <- as.numeric(salary_clean$a_mean)
 salary_clean$tot_emp <- as.integer(salary_clean$tot_emp)
