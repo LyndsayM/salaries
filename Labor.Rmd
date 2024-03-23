@@ -19,12 +19,14 @@ library(ggplot2)
 library(reactable)
 library(DT)
 library(plotly)
+library(readxl)
 ```
 
 ```{r, echo=FALSE, include=FALSE}
 #coli data from kaggle
 coli <- read.csv("data/cost_of_living_missouri_economic_research_and_information_center.csv") 
-salary <- read.csv("data/oes_research_2022_allsectors_abbr.csv")
+salary <- read.csv("data/oes_research_2022_allsectors_trimmed.csv")
+#salary <- read_excel("data/oes_research_2022_allsectors_abbr.xlsx", sheet=1)
 #states data from https://developers.google.com/public-data/docs/canonical/states_csv
 states <- read.csv("data/states.csv")
 ```
@@ -34,7 +36,9 @@ salary_clean <- salary %>%
   rename_with( ~ tolower(gsub(" ", "", .x, fixed = TRUE))) %>%
   select(area, area_title, naics, naics_title, occ_title, tot_emp, a_mean) %>%
   rename(name = area_title)
- 
+```
+
+```{r}
 
 salary_clean$a_mean <- as.numeric(salary_clean$a_mean)
 salary_clean$tot_emp <- as.integer(salary_clean$tot_emp)
